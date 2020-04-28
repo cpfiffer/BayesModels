@@ -6,6 +6,7 @@ using Reexport
 using LinearAlgebra
 using DataFrames
 using Optim
+import DynamicPPL
 @reexport using StatsModels
 
 export blm
@@ -25,56 +26,8 @@ function get_nlogp(model)
     return nlogp
 end
 
-function BayesLinear(vi, sampler, model)
-    # Set the accumulated logp to zero.
-    vi.logp = 0
 
-    # Retrieve the response variables.
-    if isdefined(model.data, :y)
-        y = model.data.y
-    else # x is a parameter
-        y = model.defaults.y
-    end
-
-    # Retrieve the response variables.
-    if isdefined(model.data, :x)
-        x = model.data.x
-    else # x is a parameter
-        x = model.defaults.x
-    end
-
-    # Retrieve the MAP priors.
-    if isdefined(model.data, :priors)
-        priors = model.data.priors
-        varprior = 1
-    else
-        priors = model.defaults.priors
-        varprior = 100
-    end
-
-    # Draw parameters from a MvNormal.
-    β, lp = Turing.assume(
-        sampler,
-        MvNormal(priors, varprior),
-        Turing.VarName(:c_β, :β, ""),
-        vi
-    )
-
-    vi.logp += lp
-    
-    # Calcuate predicted values.
-    μs = x*β
-
-    # Observe the expected values.
-    vi.logp = Turing.observe(
-        sampler,
-        MvNormal(μs, 1),
-        y, 
-        vi
-    ) |> sum
-end
-
-function blm(f::FormulaTerm, df::DataFrame, N::Int=1000)
+function blm(f::FormulaTerm, df::DataFrame, N::Int=1000, alpha_prior=nothing, beta_prior=nothing, sigma_prior=nothing)
     f = apply_schema(f, schema(f, df))
 
     # Define the default value for x when missing
@@ -84,26 +37,50 @@ function blm(f::FormulaTerm, df::DataFrame, N::Int=1000)
     data = (y = y,
             x = X)
 
-    # Instantiate a Model object.
-    model1 = Turing.Model{Tuple{:α, :β}, Tuple{:X}}(BayesLinear, data, defaults)
+	if isnothing(alpha_prior)
+		alpha_prior = Normal()
+	end
 
-    # Create a starting point, call the optimizer.
-    sm_0 = repeat([1.0], K)
-    lb = repeat([-Inf], K)
-    ub = repeat([Inf], K)
-    nlogp = get_nlogp(model1)
-    result = optimize(nlogp, lb, ub, sm_0, Fminbox())
+	if isnothing(beta_prior)
+		beta_prior = MvNormal(K, 1)
+	end
 
-    newdata = merge(data, (priors=result.minimizer,))
+	if isnothing(sigma_prior)
+		sigma_prior = InverseGamma(2,3)
+	end
+	
+	@model function bayesreg(
+		x, 
+		y, 
+		alpha_prior, 
+		beta_prior, 
+		sigma_prior,
+		::Type{TV}=Vector{Float64}
+	) where {TV}
+		N, K = size(x)
 
-    model = Turing.Model{Tuple{:α, :β}, Tuple{:x}}(BayesLinear, newdata, defaults)
+		sigma ~ sigma_prior
+		intercept ~ alpha_prior
+		beta = TV(undef, K)
+		beta ~ beta_prior
+
+		# beta is K x 1
+		# y is N x 1
+		# x is N x K
+		yhat = intercept .+ x * beta
+
+		y ~ MvNormal(yhat, sigma)	
+	end
+
+	# Model
+	model = bayesreg(X, y, alpha_prior, beta_prior, sigma_prior)
 
     # Sample
     chain = sample(model, NUTS(), N)
     
     # Get formula names.
     nms = coefnames(f.rhs)
-    nms_dict = Dict(["β[$i]" => nms[i] for i in eachindex(nms)])
+    nms_dict = Dict(["beta[$i]" => nms[i] for i in eachindex(nms)])
 
     # Overwrite the default names.
     chain = set_names(chain, nms_dict, sorted=false)
