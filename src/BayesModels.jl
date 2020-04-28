@@ -10,23 +10,6 @@ using Optim
 
 export blm
 
-function formula_names(f::FormulaTerm)
-    names = String[]
-    terms = f.rhs isa Tuple ?
-        [z for z in f.rhs] :
-        [f.rhs]
-
-    for term in terms
-        if term isa StatsModels.ConstantTerm
-            push!(names, "Constant")
-        else
-            push!(names, string(term))
-        end
-    end
-
-    return names
-end
-
 function get_nlogp(model)
     # Set up the model call, sample from the prior.
     vi = Turing.VarInfo(model)
@@ -92,13 +75,13 @@ function BayesLinear(vi, sampler, model)
 end
 
 function blm(f::FormulaTerm, df::DataFrame, N::Int=1000)
-    apply_schema(f, schema(f, df))
+    f = apply_schema(f, schema(f, df))
 
     # Define the default value for x when missing
-    X = modelmatrix(f.rhs, df)
+    y, X = modelcols(f, df)
     K = size(X, 2)
     defaults = (y = Vector{Real}(undef, 2),priors=zeros(K))
-    data = (y = df[:, f.lhs.sym],
+    data = (y = y,
             x = X)
 
     # Instantiate a Model object.
@@ -119,7 +102,7 @@ function blm(f::FormulaTerm, df::DataFrame, N::Int=1000)
     chain = sample(model, NUTS(), N)
     
     # Get formula names.
-    nms = formula_names(f)
+    nms = coefnames(f.rhs)
     nms_dict = Dict(["β[$i]" => nms[i] for i in eachindex(nms)])
 
     # Overwrite the default names.
