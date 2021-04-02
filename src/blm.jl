@@ -17,7 +17,7 @@ export InferenceStrategy, MCMC
     inference(::DynamicPPL.Model, strat::InferenceStrategy)
 
 Run probabilistic inference for the given model using the given InferenceStrategy (e.g. MCMC or variational inference).
-The type of the result depends on the implementation. MCMC implementations should return a ChainDataFrame, whereas VI
+The type of the result depends on the implementation. MCMC implementations should return the sampled chains, whereas VI
 should return a fitted variational distribution.
 """
 inference(::DynamicPPL.Model, strat::InferenceStrategy) = error("no inference implementation for $(typeof(strat))")
