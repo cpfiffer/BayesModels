@@ -22,13 +22,6 @@ should return a fitted variational distribution.
 """
 inference(::DynamicPPL.Model, strat::InferenceStrategy) = error("no inference implementation for $(typeof(strat))")
 """
-    preprocess(::InferenceStrategy, f::FormulaTerm, df::DataFrame)
-
-Applies any necessary preprocessing to the user-provided formula and DataFrame. Can be overrided for specific
-inference strategies if necessary. Should return a data tuple (y,X) representing the response and design matrix respectively.
-"""
-preprocess(::InferenceStrategy, f::FormulaTerm, df::DataFrame) = modelcols(f, df)
-"""
     postprocess(::InferenceStrategy, inferenceresult, f::FormulaTerm, df::DataFrame)
 
 Applies postprocessing to the given inference result. Returns the (possibly modified) inference result.
@@ -58,10 +51,11 @@ function blm(
     inferencestrat::InferenceStrategy=MCMC(NUTS(), 1000);
     alphaprior=nothing, 
     betaprior=nothing, 
-    sigmaprior=nothing
+    sigmaprior=nothing,
+    schemahints::Dict{Symbol}=Dict{Symbol,Any}(),
 )
-    F = apply_schema(f, schema(f, df))
-    y, X = preprocess(inferencestrat, F, df)
+    F = apply_schema(f, schema(f, df, schemahints))
+    y, X = modelcols(F, df)
     # set priors
 	alphaprior = isnothing(alphaprior) ? Normal() : alphaprior
 	betaprior = isnothing(betaprior) ? MvNormal(zeros(size(X,2)), 1) : betaprior
