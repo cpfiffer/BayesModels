@@ -57,28 +57,28 @@ function blm(
     F = apply_schema(f, schema(f, df, schemahints))
     y, X = modelcols(F, df)
     # set priors
-	alphaprior = isnothing(alphaprior) ? Normal() : alphaprior
-	betaprior = isnothing(betaprior) ? MvNormal(zeros(size(X,2)), 1) : betaprior
-	sigmaprior = isnothing(sigmaprior) ? InverseGamma(2,3) : sigmaprior
-	@model function bayesreg(
-		x, 
-		y, 
-		alphaprior, 
-		betaprior, 
-		sigmaprior,
-	)
+    alphaprior = isnothing(alphaprior) ? Normal() : alphaprior
+    betaprior = isnothing(betaprior) ? MvNormal(zeros(size(X,2)), 1) : betaprior
+    sigmaprior = isnothing(sigmaprior) ? InverseGamma(2,3) : sigmaprior
+    @model function bayesreg(
+        x, 
+        y, 
+        alphaprior, 
+        betaprior, 
+        sigmaprior,
+    )
         N,K = size(x)
-		σ ~ sigmaprior
-		α ~ alphaprior
-		β ~ betaprior
-		# beta is K x 1
-		# y is N x 1
-		# x is N x K
-		ŷ = α .+ x*β
-		y ~ MvNormal(ŷ, σ)
-	end
-	# Model
-	model = bayesreg(X, y, alphaprior, betaprior, sigmaprior)
+        σ ~ sigmaprior
+        α ~ alphaprior
+        β ~ betaprior
+        # beta is K x 1
+        # y is N x 1
+        # x is N x K
+        ŷ = α .+ x*β
+        y ~ MvNormal(ŷ, σ)
+    end
+    # Model
+    model = bayesreg(X, y, alphaprior, betaprior, sigmaprior)
     # Sample
     res = inference(model, inferencestrat)
     res = postprocess(inferencestrat,res,F,df)
