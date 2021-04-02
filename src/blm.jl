@@ -52,8 +52,14 @@ end
 Fits a Bayesian linear model specified by `f` to the given data. Return value depends on the specified inference strategy.
 MCMC will return a ChainDataFrame, whereas VI will return a fitted variational distribution.
 """
-function blm(f::FormulaTerm, df::DataFrame, inferencestrat::InferenceStrategy=MCMC(NUTS(),1000);
-    alphaprior=nothing, betaprior=nothing, sigmaprior=nothing)
+function blm(
+    f::FormulaTerm,
+    df::DataFrame, 
+    inferencestrat::InferenceStrategy=MCMC(NUTS(), 1000);
+    alphaprior=nothing, 
+    betaprior=nothing, 
+    sigmaprior=nothing
+)
     F = apply_schema(f, schema(f, df))
     y, X = preprocess(inferencestrat, F, df)
     # set priors
