@@ -77,4 +77,22 @@ using Test
         @test all(isfinite.(mean(chain)[:,:mean]))
         # this is a stupid model, so we won't bother with convergence tests
     end
+    @testset "Custom 3-stage model" begin
+        # Simple 3-stage hierarchical regression model
+        @model function hlm(X,y,priors)
+            N,K = size(X)
+            σ_β ~ filldist(InverseGamma(3,2),K)
+            σ_α ~ InverseGamma(3,2)
+            σ ~ InverseGamma(2,3)
+            α ~ Normal(0,σ_α)
+            β ~ MvNormal(zeros(K),σ_β) # diagonal pooled variance
+            η = α .+ X*β
+            y ~ MvNormal(η, σ)
+        end
+        df = RDatasets.dataset("Ecdat", "Wages")[1:10:end, :]
+        chain = bayesreg(@formula(LWage ~ 1 + Married + Ed + Married*Ed), df, MCMC(NUTS(0.65),500), hlm)
+        @test all(isfinite.(mean(chain)[:,:mean]))
+        rhat = summary[:,:rhat]
+        @test maximum(abs.(1.0 .- rhat)) <= 0.05
+    end
 end

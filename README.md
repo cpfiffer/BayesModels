@@ -75,3 +75,28 @@ chain = blm(Exponential, @formula(Output ~ 1 + Cost + LF*PF), df)
 g(x) = 1e-8 + softplus(x)
 chain = blm(Exponential, @formula(Output ~ 1 + Cost + LF*PF), df, MCMC(NUTS(),1000), g)
 ```
+
+If you find that the easy-bake, two-stage model from `blm` is too restrictive (and you probably will!), you can write your own Turing model and pass it directly to `bayesreg`:
+
+```julia
+# Simple 3-stage hierarchical regression model
+@model function hlm(X,y,priors)
+    N,K = size(X)
+    σ_β ~ filldist(InverseGamma(3,2),K)
+    σ_α ~ InverseGamma(3,2)
+    σ ~ InverseGamma(2,3)
+    α ~ Normal(0,σ_α)
+    β ~ MvNormal(zeros(K),σ_β) # diagonal pooled variance
+    η = α .+ x*β
+    y ~ MvNormal(η, σ)
+end
+df = RDatasets.dataset("Ecdat", "Wages")[1:10:end, :]
+chain = bayesreg(@formula(LWage ~ 1 + Married + Ed + Married*Ed), df, MCMC(NUTS(0.65),500), hlm)
+```
+
+The model **must** follow the form `model(X,y,priors,args...)` where `args` can be replaced with any number of arbitrary additional parameters. User-specified prior distributions can be passed in as keyword arguments and will show up in the `priors` named tuple parameter. Additional arguments to the model are passed directly through `bayesreg`:
+
+```julia
+myarg = 42
+chain = bayesreg(@formula(LWage ~ 1 + Married + Ed + Married*Ed), df, MCMC(NUTS(0.65),500), myfancymodel, myarg)
+```
