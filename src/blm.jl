@@ -98,7 +98,7 @@ end
 # default link (inverse) functions
 defaultlink(::Type{Normal}) = identity
 defaultlink(::Type{Bernoulli}) = logistic
-defaultlink(::Type{Exponential}) = η -> 1/abs(η)
+defaultlink(::Type{Exponential}) = inv ∘ abs
 defaultlink(::Type{Poisson}) = exp
 
 """

@@ -42,15 +42,17 @@ using Test
         # Defaults to 1000 MCMC samples using NUTS
         chain = blm(@formula(LWage ~ 1 + Married + Ed + Married*Ed), df)
         @test all(isfinite.(mean(chain)[:,:mean]))
+        summary,_ = describe(chain)
         rhat = summary[:,:rhat]
         @test maximum(abs.(1.0 .- rhat)) <= 0.05
         α_prior = Normal(0,2)
         β_prior = (X,y) -> MvNormal(zeros(size(X,2)),2)
         # use truncated Normal for observation variance
-        σ_prior = Truncated(Normal(0,5),0,Inf)
+        σ_prior = truncated(Normal(0,5),0,Inf)
         chain = blm(@formula(LWage ~ 1 + Married + Ed + Married*Ed), df; α_prior=α_prior, β_prior=β_prior, σ_prior=σ_prior)
         # TODO: maybe use importance sampling to verify that priors were actually used?
         @test all(isfinite.(mean(chain)[:,:mean]))
+        summary,_ = describe(chain)
         rhat = summary[:,:rhat]
         @test maximum(abs.(1.0 .- rhat)) <= 0.05
     end
@@ -58,6 +60,7 @@ using Test
         df = dataset("Ecdat","HI")[sample(1:22265,500),:] # subsample
         chain = blm(@formula(HHI ~ Whi + Education + Race + Region), df, MCMC(HMC(0.05,10),1000))
         @test all(isfinite.(mean(chain)[:,:mean]))
+        summary,_ = describe(chain)
         rhat = summary[:,:rhat]
         @test maximum(abs.(1.0 .- rhat)) <= 0.05
     end
@@ -65,6 +68,7 @@ using Test
         df = dataset("COUNT","affairs")[sample(1:601,300),:] # subsample
         chain = blm(@formula(NAffairs ~ Kids + VryUnhap + Unhap + VryHap + HapAvg + AvgMarr), df, MCMC(HMC(0.05,10),1000))
         @test all(isfinite.(mean(chain)[:,:mean]))
+        summary,_ = describe(chain)
         rhat = summary[:,:rhat]
         @test maximum(abs.(1.0 .- rhat)) <= 0.05
     end
@@ -92,6 +96,7 @@ using Test
         df = RDatasets.dataset("Ecdat", "Wages")[1:10:end, :]
         chain = bayesreg(@formula(LWage ~ 1 + Married + Ed + Married*Ed), df, MCMC(NUTS(0.65),500), hlm)
         @test all(isfinite.(mean(chain)[:,:mean]))
+        summary,_ = describe(chain)
         rhat = summary[:,:rhat]
         @test maximum(abs.(1.0 .- rhat)) <= 0.05
     end

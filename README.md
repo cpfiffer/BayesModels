@@ -37,7 +37,7 @@ Custom priors for the intercept `α` and coefficients `β`, as well as any likel
 α_prior = Normal(0,2)
 β_prior = (X,y) -> MvNormal(zeros(size(X,2)),2)
 # use truncated Normal for observation variance
-σ_prior = Truncated(Normal(0,5),0,Inf)
+σ_prior = truncated(Normal(0,5),0,Inf)
 chain = blm(@formula(LWage ~ 1 + Married + Ed + Married*Ed), df; α_prior=α_prior, β_prior=β_prior, σ_prior=σ_prior)
 ```
 
