@@ -64,7 +64,6 @@ inference(model::DynamicPPL.Model, mcmc::MCMC) = sample(model, mcmc.alg, mcmc.sa
 export InferenceStrategy, MCMC
 
 # Convenience constants
-const KW{T} = Base.Iterators.Pairs{Symbol,T} where {T}
 const Prior = Union{Function,<:Distribution}
 asfunc(prior::Prior) = prior
 asfunc(prior::Distribution) = (X,y) -> prior
