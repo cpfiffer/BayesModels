@@ -22,8 +22,8 @@ using DataFrames
 # Bayesian methods don't scale as well with bigger data.
 df = RDatasets.dataset("Ecdat", "Wages")[1:10:end, :]
 
-# Estimate the model.
-chain = blm(@formula(LWage ~ 1 + Married + Ed + Married*Ed), df, 1000)
+# Estimate the model using 1000 samples from NUTS
+chain = blm(@formula(LWage ~ 1 + Married + Ed + Married*Ed), df, MCMC(NUTS(),1000))
 
 # Display the results.
 display(chain)
