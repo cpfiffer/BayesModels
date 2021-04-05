@@ -13,12 +13,14 @@ end
 Internal function that specifies default priors for non-Normal likelihood BLMs. Additional priors for custom model
 definitions may be passed in `kwargs`.
 """
-blmpriors(
+function blmpriors(
     ::Type{<:Distribution};
     α_prior = Normal(),
     β_prior = (X,y) -> MvNormal(zeros(size(X,2)),1),
     kwargs...
-) = (α_prior=α_prior,β_prior=β_prior,kwargs...)
+)
+    return (α_prior=α_prior,β_prior=β_prior,kwargs...)
+end
 """
 Internal function that specifies default priors for Normal likelihood BLMs.
 """
