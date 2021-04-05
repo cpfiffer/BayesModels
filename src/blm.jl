@@ -24,13 +24,15 @@ end
 """
 Internal function that specifies default priors for Normal likelihood BLMs.
 """
-blmpriors(
+function blmpriors(
     ::Type{Normal};
     α_prior = Normal(),
     β_prior = (X,y) -> MvNormal(zeros(size(X,2)),1),
     σ_prior = InverseGamma(2,3),
     kwargs...
-) = (α_prior=α_prior,β_prior=β_prior,σ_prior=σ_prior,kwargs...)
+)
+    return (α_prior=α_prior,β_prior=β_prior,σ_prior=σ_prior,kwargs...)
+end
 
 """
     bayesreg(f::FormulaTerm,df::DataFrame,inferencestrat::InferenceStrategy,modelfn::F,modelargs...;schemahints::Dict{Symbol}=Dict{Symbol,Any}())
